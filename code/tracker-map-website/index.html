@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HAB 2025 Mobile Tracker</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica; background: #f4f4f4; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+        
+        /* Mobile-friendly Bottom Sheet */
+        #info { 
+            position: absolute; 
+            bottom: 20px; /* Moved to bottom */
+            left: 10px; 
+            right: 10px; 
+            z-index: 1000; 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 15px; 
+            border-radius: 15px; 
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.2);
+            font-size: 15px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .coord-row {
+            grid-column: span 2;
+            padding-top: 5px;
+            margin-top: 5px;
+            border-top: 1px solid #ddd;
+            font-family: monospace;
+            font-size: 14px;
+            color: #d32f2f; /* Reddish for focus */
+        }
+
+        .update-time { font-size: 10px; color: #888; display: block; margin-top: 8px; text-align: right; }
+        
+        /* Ensure zoom buttons stay at the top left to avoid overlap */
+        .leaflet-top { top: 10px; }
+        .leaflet-bar a { width: 44px !important; height: 44px !important; line-height: 44px !important; }
+    </style>
+</head>
+<body>
+
+<div id="info">
+    <div id="stats" class="stats-grid">
+        <b>Waiting for payload...</b>
+    </div>
+    <div id="coords" class="coord-row">LAT: -- | LON: --</div>
+    <span id="timestamp" class="update-time"></span>
+</div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // --- CONFIGURATION ---
+    const API_KEY = "NNSXS.SCWX2XNZAH5OH2VVJVYH2LAQ7NROC6CU7OMFJSA.PVZHT3ZMVEDNOV2B3PVCVZ55TWBGN3IPDKWKPM6KWCTPVBBMYWRA"; // Format: NNSXS.XXXX...
+    const APP_ID = "fvs-hab2026";
+    const TTN_REGION = "eu1"; // Usually eu1
+    // ---------------------
+
+
+    const map = L.map('map', { zoomControl: true }).setView([0,0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const pathLine = L.polyline([], {color: '#888', weight: 2, dashArray: '5, 5'}).addTo(map);
+    const historyGroup = L.layerGroup().addTo(map);
+    const currentMarker = L.circleMarker([0,0], {
+        radius: 10, fillColor: "#ff0000", color: "#fff", weight: 3, fillOpacity: 1
+    }).addTo(map);
+
+    async function fetchData() {
+        const hours12ago = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+        const url = `https://${TTN_REGION}.cloud.thethings.network/api/v3/as/applications/${APP_ID}/packages/storage/uplink_message?after=${hours12ago}`;
+
+        try {
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${API_KEY}`, 'Accept': 'application/json' }
+            });
+            const text = await response.text();
+            const lines = text.split('\n').filter(l => l.trim() !== "");
+            
+            const latlngs = [];
+            historyGroup.clearLayers();
+
+            lines.forEach((line, index) => {
+                const json = JSON.parse(line);
+                const p = json.result.uplink_message.decoded_payload;
+                
+                if (p && p.latitude) {
+                    const pos = [p.latitude, p.longitude];
+                    latlngs.push(pos);
+                    
+                    if (index < lines.length - 1) {
+                        L.circleMarker(pos, { radius: 4, fillColor: "#999", color: "#666", weight: 1, fillOpacity: 0.6 }).addTo(historyGroup);
+                    } else {
+                        // Current Point Logic
+                        currentMarker.setLatLng(pos);
+                        map.panTo(pos);
+                        
+                        document.getElementById('stats').innerHTML = `
+                            <div><b>Alt:</b> ${p.altitude}m</div>
+                            <div><b>Sats:</b> ${p.sats}</div>
+                            <div><b>Speed:</b> ${p.speed}kmh</div>
+                        `;
+                        // Fixed decimal points for precision
+                        document.getElementById('coords').innerText = `LAT: ${p.latitude.toFixed(5)} | LON: ${p.longitude.toFixed(5)}`;
+                        document.getElementById('timestamp').innerText = "Last Update: " + new Date().toLocaleTimeString();
+                    }
+                }
+            });
+
+            if (latlngs.length > 0) {
+                pathLine.setLatLngs(latlngs);
+                if (!window.initialZoom) {
+                    map.fitBounds(pathLine.getBounds(), {padding: [50, 50]});
+                    window.initialZoom = true;
+                }
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    fetchData();
+    setInterval(fetchData, 60000);
+</script>
+</body>
+</html>
