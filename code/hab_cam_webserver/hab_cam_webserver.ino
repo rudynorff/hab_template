@@ -168,8 +168,7 @@ void setup() {
   if (session_id == 0) session_id = esp_random() % 9000 + 1000;
 
   // MISSION LOOP
-  // unsigned long missionDuration = (unsigned long)CAPTURE_DURATION_MIN * 60 * 1000;
-  unsigned long missionDuration = (unsigned long)2 * 60 * 1000;
+  unsigned long missionDuration = (unsigned long)CAPTURE_DURATION_MIN * 60 * 1000;
   unsigned long startMillis = millis();
   
   Serial.println("Mission Start...");
