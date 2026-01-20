@@ -4,4 +4,5 @@ numbers.numbers
 package-lock.json
 node_modules
 mission_photos
+mission_*
 legal

@@ -1,43 +1,40 @@
 # Checklist
 
 ## Monday
-- Buy: 
-    - Helium
-    - Strong line?
 - Do:
     - Print 
-    - Prepare payload box (pre-glue batteries)
+    - Prepare payload box (also pre-glue batteries)
     - Prepare SD cards: format
 
 ## Tuesday
 - Buy: Battery and Charger (if not delivered)
 - Do:
     - Connect all lines safely
-- Charge:
-    - GPS batteries
-    - 18650
-    - Laptop
-    - Powerbank
-    - Samsung Phone
-- Pack Balloon Box
-    - Strong line
-    - Chute line
-    - Helium & Tools for bottle
-    - Large Zip Ties
-    - Black Duct Tape
-- Pack Payload Box
-    - All batteries (keep warm!!!)
-    - GPS Tracker
-    - TTN Tracker
-    - Camera
-    - SD cards
-    - Energizer Batteries
-    - Small Zip Ties
-    - Clear Duct Tape
-    - Double Sided Tape
-- Pack Recovery Box
-    - Fishing Rod
-    - Laptop
+    - Charge:
+        - GPS batteries
+        - 18650
+        - Laptop
+        - Powerbank
+        - Samsung Phone
+    - Pack Balloon Box
+        - Strong line
+        - Chute line
+        - Helium & Tools for bottle
+        - Large Zip Ties
+        - Black Duct Tape
+    - Pack Payload Box
+        - All batteries (keep warm!!!)
+        - GPS Tracker
+        - TTN Tracker
+        - Camera
+        - SD cards
+        - Energizer Batteries
+        - Small Zip Ties
+        - Clear Duct Tape
+        - Double Sided Tape
+    - Pack Recovery Box
+        - Fishing Rod
+        - Laptop
 
 ## FLight Check
 1. Start GPS

@@ -1,64 +1,55 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
+const { off } = require('cluster');
 const fs = require('fs');
 const path = require('path');
 
-const ESP_IP = 'http://192.168.4.1'; // The ESP32's default AP IP
-const DOWNLOAD_DIR = './mission_photos';
+// Get arguments from command line: npm run start: npm run start -- <session_id> <photo_count> [<offset> <lastPhotoIndex>]
+const sessionId = process.argv[4];
+const photoCount = process.argv[7] || process.argv[5];
+const offset = process.argv[6] || 0;
+const ESP_IP = 'http://192.168.4.1';
+const DOWNLOAD_DIR = `./mission_${sessionId}`;
 
-// Ensure download directory exists
+if (!sessionId || !photoCount) {
+    console.error("Usage:\nnpm run start -- <session_id> <photo_count> [<offset> <lastPhotoIndex>]");
+    process.exit(1);
+}
+
+console.log(`sessionId ${sessionId}; photoCount ${photoCount}; offset ${offset}`);
+
 if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR);
 
-async function downloadMissionData() {
-    try {
-        console.log(`Connecting to BalloonCam at ${ESP_IP}...`);
-        const response = await axios.get(ESP_IP);
-        const $ = cheerio.load(response.data);
-        
-        // Find all links that contain "/download"
-        const links = [];
-        $('a').each((i, el) => {
-            const href = $(el).attr('href');
-            if (href && href.includes('/download')) {
-                links.push(href);
-            }
-        });
+async function startDownload() {
+    console.log(`🚀 Starting recovery for Session ${sessionId} (${photoCount} photos)`);
 
-        console.log(`Found ${links.length} files to download.`);
+    for (let i = offset; i < photoCount; i++) {
+        const fileName = `pic_${sessionId}_${i}.jpg`;
+        const fileUrl = `${ESP_IP}/download?file=/${fileName}`;
+        const localPath = path.join(DOWNLOAD_DIR, fileName);
 
-        // Sequential download loop
-        for (let i = 0; i < links.length; i++) {
-            const link = links[i];
-            // Extract filename from the URL query param
-            const urlParams = new URLSearchParams(link.split('?')[1]);
-            const fileName = urlParams.get('file').replace('/', '');
-            const fileUrl = `${ESP_IP}${link}`;
+        try {
+            console.log(`[${i + 1}/${photoCount}] Fetching ${fileName}...`);
+            const writer = fs.createWriteStream(localPath);
             
-            console.log(`[${i + 1}/${links.length}] Downloading: ${fileName}...`);
-            
-            const writer = fs.createWriteStream(path.join(DOWNLOAD_DIR, fileName));
-            
-            const download = await axios({
+            const response = await axios({
                 url: fileUrl,
                 method: 'GET',
-                responseType: 'stream'
+                responseType: 'stream',
+                timeout: 10000 // 10 second timeout per photo
             });
 
-            download.data.pipe(writer);
+            response.data.pipe(writer);
 
-            // Wait for the current file to finish before starting the next
             await new Promise((resolve, reject) => {
                 writer.on('finish', resolve);
                 writer.on('error', reject);
             });
+        } catch (err) {
+            console.error(`❌ Failed to download ${fileName}: ${err.message}`);
+            // If the photo is missing, we continue to the next one
         }
-
-        console.log('✅ All files downloaded successfully!');
-    } catch (error) {
-        console.error('❌ Error during recovery:', error.message);
     }
+    console.log("✅ Recovery complete.");
 }
 
-downloadMissionData();
-
-
+startDownload();

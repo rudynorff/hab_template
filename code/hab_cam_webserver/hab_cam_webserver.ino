@@ -130,22 +130,14 @@ void takePhotoAndSave() {
 }
 
 // --- WEB SERVER HANDLERS ---
-
 void handleRoot() {
   String html = "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'>";
-  html += "<style>body{font-family:sans-serif; padding:20px;} li{margin:10px 0;}</style></head>";
-  html += "<body><h1>🎈 Stratosphere Cam</h1><p>Session: " + String(session_id) + "</p><ul>";
-
-  File root = SD.open("/");
-  File file = root.openNextFile();
-  while (file) {
-    String name = String(file.name());
-    if (name.endsWith(".jpg")) {
-      html += "<li><a href='/download?file=/" + name + "'>" + name + "</a> (" + String(file.size() / 1024) + " KB)</li>";
-    }
-    file = root.openNextFile();
-  }
-  html += "</ul></body></html>";
+  html += "<style>body{font-family:sans-serif; background:#f4f4f4; padding:20px;} .stat{font-size:1.5em; margin:10px 0;}</style></head>";
+  html += "<body><h1>Flight Recovery</h1>";
+  html += "<div class='stat'><b>Session ID:</b> <span id='sid'>" + String(session_id) + "</span></div>";
+  html += "<div class='stat'><b>Photo Count:</b> <span id='pcnt'>" + String(photo_count) + "</span></div>";
+  html += "<p>Use the Node.js script to download all files.</p>";
+  html += "</body></html>";
   server.send(200, "text/html", html);
 }
 
@@ -176,7 +168,8 @@ void setup() {
   if (session_id == 0) session_id = esp_random() % 9000 + 1000;
 
   // MISSION LOOP
-  unsigned long missionDuration = (unsigned long)CAPTURE_DURATION_MIN * 60 * 1000;
+  // unsigned long missionDuration = (unsigned long)CAPTURE_DURATION_MIN * 60 * 1000;
+  unsigned long missionDuration = (unsigned long)2 * 60 * 1000;
   unsigned long startMillis = millis();
   
   Serial.println("Mission Start...");
@@ -193,7 +186,7 @@ void setup() {
   server.on("/download", handleDownload);
   server.begin();
   
-  Serial.print("Recovery Mode Active. IP: ");
+  Serial.print("Recovery Mode Active. Connect to the BalloonCam WiFi then load the following IP in your browser: ");
   Serial.println(WiFi.softAPIP());
   flashLED(5); // Signal that mission is done
 }
